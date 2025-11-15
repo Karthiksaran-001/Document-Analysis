@@ -1,0 +1,20 @@
+langchain
+langchain-community
+langchain-core
+langchain-groq
+langchain-google-genai
+faiss-cpu
+ragas
+langchain-astradb
+fastapi
+uvicorn
+python-dotenv
+python-multipart
+PyMuPDF
+structlog
+docx2txt
+ipykernel
+streamlit
+pytest
+
+-e .   
