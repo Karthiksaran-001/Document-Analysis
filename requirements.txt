@@ -4,6 +4,8 @@ langchain-core
 langchain-groq
 langchain-google-genai
 faiss-cpu
+torch
+sentence-transformers
 ragas
 langchain-astradb
 fastapi
