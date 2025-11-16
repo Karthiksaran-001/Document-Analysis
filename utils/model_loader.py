@@ -89,11 +89,11 @@ class ModelLoader:
             log.error("Error loading LLM model", error=str(e))
             raise DocumentException("Failed to load LLM model") 
 
-if __name__ == "__main__":
-    obj = ModelLoader()
-    embedding = obj.load_embeddings()
-    vector = embedding.embed_query("Supply chain optimization")
-    print(f"Embedding Shape : {len(vector)}")
-    llm = obj.load_llm()
-    message = llm.invoke("Hello,How afre you?")
-    print(f"LLM Message:\n{message}")
+# if __name__ == "__main__":
+#     obj = ModelLoader()
+#     embedding = obj.load_embeddings()
+#     vector = embedding.embed_query("Supply chain optimization")
+#     print(f"Embedding Shape : {len(vector)}")
+#     llm = obj.load_llm()
+#     message = llm.invoke("Hello,How afre you?")
+#     print(f"LLM Message:\n{message}")
