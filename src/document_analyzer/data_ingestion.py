@@ -51,30 +51,3 @@ class DocumentHandler:
         except Exception as e:
             self.log.error(f"Error reading PDF: {e}")
             raise DocumentException("Error reading PDF", e) from e
-
-if __name__ == "__main__":
-    from pathlib import Path
-    from io import BytesIO
-    
-    pdf_path=r"data\document_analysis\RAG.pdf"
-    class DummnyFile:
-        def __init__(self,file_path):
-            self.name = Path(file_path).name
-            self._file_path = file_path
-        def getbuffer(self):
-            return open(self._file_path, "rb").read()
-        
-    dummy_pdf = DummnyFile(pdf_path)
-    
-    handler = DocumentHandler()
-    
-    try:
-        saved_path=handler.save_pdf(dummy_pdf)
-        print(saved_path)
-        
-        content=handler.read_pdf(saved_path)
-        print("PDF Content:")
-        print(content[:500])  # Print first 500 characters of the PDF content
-        
-    except Exception as e:
-        print(f"Error: {e}")
