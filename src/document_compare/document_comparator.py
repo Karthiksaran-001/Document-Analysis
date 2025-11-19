@@ -14,10 +14,26 @@ warnings.filterwarnings("ignore")
 
 class DocumentComparator:
     def __init__(self):
-        pass 
+        load_dotenv()
+        self.log = CustomLogger().get_logger(__name__)
+        self.loader = ModelLoader()
+        self.llm = self.loader.load_llm() 
+        self.parser = JsonOutputParser(pydantic_object=SummaryResponse)
+        self.fixing_parser = OutputFixingParser.from_llm(parser = self.parser , llm = self.llm)
+        self.prompt = PROMPT_REGISTRY["document_comparison"]
+        self.chain = self.prompt | self.llm | self.parser | self.fixing_parser
+        self.log("DocumentComparator Initalized the model with parser")
     def compare_documents(self):
-        pass 
+        try:
+            pass
+        except Exception as e:
+            self.log.error("Error Occured with Comparing the Documents", e)
+            raise DocumentException("Error Occured with Comparing the Documents") 
     def _format_response(self):
-        pass
-    
+        try:
+            pass
+        except Exception as e:
+            self.log.error("Error Occured with Formating the Documents", e)
+            raise DocumentException("Error Occured with Formating the Documents") 
+
 
