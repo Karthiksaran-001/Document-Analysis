@@ -75,7 +75,7 @@ def test_compare_document():
 
     ref_file , act_file = comparator.save_uploaded_files(ref_upload , act_upload)
     combined_text = comparator.combined_documents()
-    # comparator.clean_old_sessions(keep_latest=2)
+    comparator.clean_old_sessions(keep_latest=2)
 
     llm_comparator = DocumentComparatorLLM()
     compare_df = llm_comparator.compare_documents(combined_text)

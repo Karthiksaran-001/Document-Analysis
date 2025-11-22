@@ -21,3 +21,5 @@ class ChangeFormat(BaseModel):
 class SummaryResponse(RootModel[list[ChangeFormat]]):
     pass
 
+class PromptType:pass
+
