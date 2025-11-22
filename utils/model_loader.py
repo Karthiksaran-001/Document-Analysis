@@ -5,10 +5,10 @@ from langchain_google_genai.embeddings import GoogleGenerativeAIEmbeddings
 from langchain_groq.chat_models import ChatGroq
 from dotenv import load_dotenv
 from utils.config_loader import load_config
-from logger.custom_logger import CustomLogger
+from logger import GLOBAL_LOGGER as log
 from exception.custom_exception import DocumentException
 warnings.filterwarnings("ignore")
-log = CustomLogger().get_logger(__name__)
+
 
 class ModelLoader:
     def __init__(self):

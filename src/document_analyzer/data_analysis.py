@@ -1,6 +1,6 @@
 import os 
 from utils.model_loader import ModelLoader
-from logger.custom_logger import CustomLogger 
+from logger import GLOBAL_LOGGER as log
 from exception.custom_exception import DocumentException
 from model.models import Metadata
 from prompt.prompt_library import PROMPT_REGISTRY 
@@ -12,17 +12,16 @@ warnings.filterwarnings("ignore")
 
 class DocumentAnalyzer:
     def __init__(self):
-        self.log = CustomLogger().get_logger(__name__)
         try:
             self.loader = ModelLoader()
             self.llm = self.loader.load_llm()
             self.parser = JsonOutputParser(pydantic_object=Metadata)
             self.fixing_parser = OutputFixingParser.from_llm(parser=self.parser, llm=self.llm)
             self.prompt = PROMPT_REGISTRY["document_analysis"]
-            self.log.info("DocumentAnalyzer initialized successfully")
+            log.info("DocumentAnalyzer initialized successfully")
 
         except Exception as e:
-            self.log.error(f"Error in DocumentAnalyzer initializer {e}")
+            log.error(f"Error in DocumentAnalyzer initializer {e}")
             raise DocumentException("Error in DocumentAnalyzer initializer")
 
     def analyze_document(self,document_text:str)->dict:
@@ -32,19 +31,19 @@ class DocumentAnalyzer:
         try:
             chain = self.prompt | self.llm | self.fixing_parser
             
-            self.log.info("Meta-data analysis chain initialized")
+            log.info("Meta-data analysis chain initialized")
 
             response = chain.invoke({
                 "format_instructions": self.parser.get_format_instructions(),
                 "document_text": document_text
             })
 
-            self.log.info("Metadata extraction successful", keys=list(response.keys()))
+            log.info("Metadata extraction successful", keys=list(response.keys()))
             
             return response
 
         except Exception as e:
-            self.log.error("Metadata analysis failed", error=str(e))
+            log.error("Metadata analysis failed", error=str(e))
             raise DocumentException("Metadata extraction failed",)
 
 

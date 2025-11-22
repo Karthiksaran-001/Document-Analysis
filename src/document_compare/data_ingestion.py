@@ -1,16 +1,14 @@
 import os 
 from pathlib import Path 
 import fitz
-from logger.custom_logger import CustomLogger
+from logger import GLOBAL_LOGGER as log
 from exception.custom_exception import DocumentException
-from dotenv import load_dotenv
 from datetime import datetime, timezone
 import uuid
 
 
 class DocumentIngestion:
     def __init__(self,base_dir:str = "data\document_compare", session_id = None):
-        self.log = CustomLogger().get_logger(__name__)
         self.base_dir = Path(base_dir)
         self.base_dir.mkdir(parents=True, exist_ok=True)
         self.session_id = session_id or f"session_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
@@ -32,10 +30,10 @@ class DocumentIngestion:
             with open(act_path, "wb") as f:
                 f.write(act_file.get_buffer())
 
-            self.log.info("Files saved", reference=str(ref_path), actual=str(act_path))
+            log.info("Files saved", reference=str(ref_path), actual=str(act_path))
             return ref_path, act_path
         except Exception as e:
-            self.log.error(f"Error Occured while upload file : {e}")
+            log.error(f"Error Occured while upload file : {e}")
             raise DocumentException("Error Occured while upload file") 
     def read_pdf(self, pdf_path: Path) -> str:
         """
@@ -51,11 +49,11 @@ class DocumentIngestion:
                     text = page.get_text()  # type: ignore
                     if text.strip():
                          all_text.append(f"\n --- Page {page_num + 1} --- \n{text}")
-            self.log.info("PDF read successfully", file=str(pdf_path), pages=len(all_text))
+            log.info("PDF read successfully", file=str(pdf_path), pages=len(all_text))
             return "\n".join(all_text)
 
         except Exception as e:
-            self.log.error("Error reading PDF", file=str(pdf_path), error=str(e))
+            log.error("Error reading PDF", file=str(pdf_path), error=str(e))
             raise DocumentException("Error reading PDF")
         
     def combined_documents(self):
@@ -68,11 +66,11 @@ class DocumentIngestion:
             for filename , content in concat_dict.items():
                 doc_part.append(f"Document: {filename}\n{content}")
             combined_doc = "\n\n".join(doc_part)
-            self.log.info("Document Combined", count = len(doc_part))
+            log.info("Document Combined", count = len(doc_part))
             return combined_doc
             
         except Exception as e:
-            self.log.error(f"Error Occured while combined_documents : {e}")
+            log.error(f"Error Occured while combined_documents : {e}")
             raise DocumentException("Error Occured while combined_documents")
         
 
@@ -89,8 +87,8 @@ class DocumentIngestion:
                 for file in folder.iterdir():
                     file.unlink()
                 folder.rmdir()
-                self.log.info("Old session folder deleted", path=str(folder))
+                log.info("Old session folder deleted", path=str(folder))
 
         except Exception as e:
-            self.log.error("Error cleaning old sessions", error=str(e))
+            log.error("Error cleaning old sessions", error=str(e))
             raise DocumentException("Error cleaning old sessions")
