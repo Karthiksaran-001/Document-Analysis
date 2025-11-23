@@ -33,12 +33,12 @@ class SingleDocIngestor:
         try:
             documents = []
             for file in uploaded_files:
-                unique_filename = "session_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}.pdf"
+                unique_filename = f"session_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}.pdf"
                 temp_path = self.data_dir / unique_filename
                 with open(temp_path , "wb") as f_out:
                     f_out.write(file.read())
                 log.info("PDF are Saved for Ingestion", file_name =file.name)
-                loader = PyMuPDFLoader(file)
+                loader = PyMuPDFLoader(str(temp_path))
                 docs = loader.load()
                 documents.extend(docs)
             log.info("PDF file Load" , count = len(documents))
@@ -61,7 +61,7 @@ class SingleDocIngestor:
             namespace=self.db_keyspace,)
             inserted_ids = vectorstore.add_documents(documents)
             log.info(f"Successfully inserted {len(inserted_ids)} documents into AstraDB.")
-            top_k = self.config["retriever"]["top_k"] if "retriver" in self.config else 3
+            top_k = self.config["retriever"]["top_k"] if "retriever" in self.config else 3
             retriever = vectorstore.as_retriever(search_type = "similarity" , search_kwargs = {"k" : top_k})
             log.info("Retriever created Successfully" , retriever_type = str(type(retriever)))
             return retriever

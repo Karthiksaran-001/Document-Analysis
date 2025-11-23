@@ -110,7 +110,7 @@ def test_conversational_rag_on_pdf(pdf_path:str, question:str):
         db_keyspace = "default_keyspace"
         db = DataAPIClient(db_application_token).get_database(db_api_endpoint)
         collections = db.list_collections()
-        if collection_name  in collections:
+        if any(col.name == collection_name for col in collections):
             print("Loading existing ASTRA DB ...")
             embeddings = model_loader.load_embeddings()
             vectorstore = AstraDBVectorStore(
@@ -123,7 +123,7 @@ def test_conversational_rag_on_pdf(pdf_path:str, question:str):
             with open(pdf_path, "rb") as f:
                 uploaded_files = [f]
                 ingestor = SingleDocIngestor()
-                retriever = ingestor.ingest_file(uploaded_files)
+                retriever = ingestor.ingest_files(uploaded_files)
                 
         print("Running Conversational RAG...")
         session_id = "test_conversational_rag"

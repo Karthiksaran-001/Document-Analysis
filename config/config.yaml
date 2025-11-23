@@ -1,4 +1,4 @@
-astra:
+astra_db:
   key_space : "default_keyspace" 
   collection_name : "doc_chat"
 

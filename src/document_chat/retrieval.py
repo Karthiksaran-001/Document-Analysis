@@ -25,20 +25,23 @@ class ConversationalRAG:
             self.session_id = session_id
             self.retriever = retriever
             self.llm = self._load_llm()
+            self.session_state = {}
             self.db_api_endpoint = os.getenv("ASTRA_DB_API_ENDPOINT")
             self.db_application_token = os.getenv("ASTRA_DB_APPLICATION_TOKEN")
             self.config = load_config()
             self.db_keyspace = self.config["astra_db"]["key_space"]
             self.collection_name=self.config["astra_db"]["collection_name"]
             self.contextualize_prompt = PROMPT_REGISTRY[PromptType.CONTEXTUALIZE_QUESTION.value]
+            self.qa_prompt = PROMPT_REGISTRY[PromptType.CONTEXT_QA.value]
             self.history_aware_retriever = create_history_aware_retriever(
-                self.llm , retriever=self.retriever , prompt= self.contextualize_prompt)
-            self.qa_chain = create_stuff_documents_chain(self.llm,self.contextualize_prompt)
-            self.rag_chain = create_retrieval_chain(self.history_aware_retriever , self.qa_chain)
+                self.llm, self.retriever, self.contextualize_prompt)
+            log.info("Created history-aware retriever", session_id=session_id)
+            self.qa_chain = create_stuff_documents_chain(self.llm, self.qa_prompt)
+            self.rag_chain = create_retrieval_chain(self.history_aware_retriever, self.qa_chain)
             log.info("Initalize the Conversational RAG" , session_id = self.session_id)
             self.chain = RunnableWithMessageHistory(
-                self.rag_chain , self._get_session_history, input_messages_key="input",
-                history_messages_key="chat_history",
+                self.rag_chain,self._get_session_history,
+                input_messages_key="input",history_messages_key="chat_history",
                 output_messages_key="answer")
         except Exception as e:
             log.error("Error in ConversationalRAG Initalizer" , error=str(e))
@@ -53,13 +56,9 @@ class ConversationalRAG:
             raise DocumentException("Error in Load LLM")
     def _get_session_history(self,session_id):
         try:
-            if "store" not in st.session_state:
-                st.session_state.store = {}
-
-            if session_id not in st.session_state.store:
-                st.session_state.store[session_id] = ChatMessageHistory()
-                self.log.info("New chat session history created", session_id=session_id)
-            return st.session_state.store[session_id]
+            self.session_state[session_id] = ChatMessageHistory()
+            log.info("New chat session history created", session_id=session_id)
+            return self.session_state[session_id]
         except Exception as e:
             self.log.error("Failed in get session history",session_id = session_id , error = str(e))
             raise DocumentException(e)
@@ -68,7 +67,7 @@ class ConversationalRAG:
             embedding = ModelLoader().load_embeddings()
             db = DataAPIClient(self.db_application_token).get_database(self.db_api_endpoint)
             collections = db.list_collections()
-            if collection_name not in collections:
+            if not any(col.name == collection_name for col in collections):
                 raise DocumentException("ASTRA DB doent have the collection name" , collection_name =collection_name , collection_list =  collections)
             vectorstore = AstraDBVectorStore(
             embedding= embedding,
@@ -77,7 +76,7 @@ class ConversationalRAG:
             token=self.db_application_token,
             namespace=self.db_keyspace,)
             log.info("Loaded Retriver", collection = collection_name)
-            top_k = self.config["retriever"]["top_k"] if "retriver" in self.config else 3
+            top_k = self.config["retriever"]["top_k"] if "retriever" in self.config else 3
             retriever = vectorstore.as_retriever(search_type = "similarity" , search_kwargs = {"k" : top_k})
             log.info("Retriever created Successfully" , retriever_type = str(type(retriever)))
         except Exception as e:
@@ -90,7 +89,8 @@ class ConversationalRAG:
             if not answer:
                 log.warning("Empty answer received", session_id=self.session_id)
             log.info("Chain invoked successfully", session_id=self.session_id, user_input=user_input, answer_preview=answer[:150])
+            return answer
         except Exception as e:
-            self.log.error("Failed in invoke" , error = str(e))
+            log.error("Failed in invoke" , error = str(e))
             raise DocumentException(e)
     
