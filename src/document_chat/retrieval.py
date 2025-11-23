@@ -54,11 +54,15 @@ class ConversationalRAG:
         except Exception as e:
             log.error("Error in Load LLM" , error=str(e))
             raise DocumentException("Error in Load LLM")
-    def _get_session_history(self,session_id):
+    def _get_session_history(self,session_id)-> BaseChatMessageHistory:
         try:
-            self.session_state[session_id] = ChatMessageHistory()
+            if "store" not in st.session_state:
+                st.session_state.store = {}
+
+            if session_id not in st.session_state.store:
+                st.session_state.store[session_id] = ChatMessageHistory()
             log.info("New chat session history created", session_id=session_id)
-            return self.session_state[session_id]
+            return st.session_state.store[session_id]
         except Exception as e:
             self.log.error("Failed in get session history",session_id = session_id , error = str(e))
             raise DocumentException(e)
