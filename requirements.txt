@@ -16,5 +16,5 @@ docx2txt
 ipykernel
 streamlit
 pytest
-
+astrapy
 -e .   

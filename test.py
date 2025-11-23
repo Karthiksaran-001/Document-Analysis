@@ -49,41 +49,101 @@
 
 ## (Module 2) Test code for document ingestion and Comparision using a PDFHandler and DocumentComparision
 
-from tabulate import tabulate
-import io
-from pathlib import Path
-from src.document_compare.data_ingestion import DocumentIngestion
-from src.document_compare.document_comparator import DocumentComparatorLLM
+# from tabulate import tabulate
+# import io
+# from pathlib import Path
+# from src.document_compare.data_ingestion import DocumentIngestion
+# from src.document_compare.document_comparator import DocumentComparatorLLM
 
 
-def load_fake_upload(file_path:Path):
-    return io.BytesIO(file_path.read_bytes())
+# def load_fake_upload(file_path:Path):
+#     return io.BytesIO(file_path.read_bytes())
 
-def test_compare_document():
-    ref_path = Path(r"data\document_compare\Long_Report_V1.pdf")
-    act_path = Path(r"data\document_compare\Long_Report_V2.pdf")
+# def test_compare_document():
+#     ref_path = Path(r"data\document_compare\Long_Report_V1.pdf")
+#     act_path = Path(r"data\document_compare\Long_Report_V2.pdf")
 
-    class FakeUpload:
-        def __init__(self , file_path:Path):
-            self.name = file_path.name
-            self._buffer = file_path.read_bytes()
-        def get_buffer(self):
-            return self._buffer
-    comparator = DocumentIngestion()
-    ref_upload = FakeUpload(ref_path)
-    act_upload = FakeUpload(act_path)
+#     class FakeUpload:
+#         def __init__(self , file_path:Path):
+#             self.name = file_path.name
+#             self._buffer = file_path.read_bytes()
+#         def get_buffer(self):
+#             return self._buffer
+#     comparator = DocumentIngestion()
+#     ref_upload = FakeUpload(ref_path)
+#     act_upload = FakeUpload(act_path)
 
-    ref_file , act_file = comparator.save_uploaded_files(ref_upload , act_upload)
-    combined_text = comparator.combined_documents()
-    comparator.clean_old_sessions(keep_latest=2)
+#     ref_file , act_file = comparator.save_uploaded_files(ref_upload , act_upload)
+#     combined_text = comparator.combined_documents()
+#     comparator.clean_old_sessions(keep_latest=2)
 
-    llm_comparator = DocumentComparatorLLM()
-    compare_df = llm_comparator.compare_documents(combined_text)
-    print(f"Comparision Df :")
-    print(print(tabulate(compare_df, headers='keys', tablefmt='fancy_grid')))
+#     llm_comparator = DocumentComparatorLLM()
+#     compare_df = llm_comparator.compare_documents(combined_text)
+#     print(f"Comparision Df :")
+#     print(print(tabulate(compare_df, headers='keys', tablefmt='fancy_grid')))
         
+# if __name__ == "__main__":
+#     test_compare_document()
+
+## (Module 3) Test code for document ingestion and Retriever using a   SingleDocQuery
+
+import sys
+from pathlib import Path
+from langchain_community.vectorstores import FAISS
+from src.document_chat.data_ingestion import SingleDocIngestor
+from src.document_chat.retrieval import ConversationalRAG
+from utils.model_loader import ModelLoader
+from astrapy import DataAPIClient
+import os
+from langchain_astradb.vectorstores import AstraDBVectorStore
+from dotenv import load_dotenv
+load_dotenv()
+
+# FAISS_INDEX_PATH = Path("faiss_index")
+
+def test_conversational_rag_on_pdf(pdf_path:str, question:str):
+    try:
+        model_loader = ModelLoader()
+        db_api_endpoint = os.getenv("ASTRA_DB_API_ENDPOINT")
+        db_application_token = os.getenv("ASTRA_DB_APPLICATION_TOKEN")
+        collection_name = "doc_chat"
+        db_keyspace = "default_keyspace"
+        db = DataAPIClient(db_application_token).get_database(db_api_endpoint)
+        collections = db.list_collections()
+        if collection_name  in collections:
+            print("Loading existing ASTRA DB ...")
+            embeddings = model_loader.load_embeddings()
+            vectorstore = AstraDBVectorStore(
+            embedding= embeddings,collection_name=collection_name,api_endpoint=db_api_endpoint,
+            token=db_application_token,namespace=db_keyspace,)
+            retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 5})
+        else:
+            # Step 2: Ingest document and create retriever
+            print("Collection  not found. Ingesting PDF and creating index...")
+            with open(pdf_path, "rb") as f:
+                uploaded_files = [f]
+                ingestor = SingleDocIngestor()
+                retriever = ingestor.ingest_file(uploaded_files)
+                
+        print("Running Conversational RAG...")
+        session_id = "test_conversational_rag"
+        rag = ConversationalRAG(session_id ,retriever )
+        response = rag.invoke(question)
+        print(f"\nQuestion: {question}\nAnswer: {response}")
+                    
+    except Exception as e:
+        print(f"Test failed: {str(e)}")
+        sys.exit(1)
+    
 if __name__ == "__main__":
-    test_compare_document()
+    # Example PDF path and question
+    pdf_path = r"data\single_doc_chat\RAG.pdf"
+    question = "What is the Indexing in RAG?"
 
-
+    if not Path(pdf_path).exists():
+        print(f"PDF file does not exist at: {pdf_path}")
+        sys.exit(1)
+    
+    # Run the test
+    test_conversational_rag_on_pdf(pdf_path, question)
 

@@ -6,6 +6,7 @@ from model.models import Metadata
 from prompt.prompt_library import PROMPT_REGISTRY 
 from langchain_core.output_parsers import JsonOutputParser
 from langchain.output_parsers import OutputFixingParser
+from model.models import PromptType
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -17,7 +18,7 @@ class DocumentAnalyzer:
             self.llm = self.loader.load_llm()
             self.parser = JsonOutputParser(pydantic_object=Metadata)
             self.fixing_parser = OutputFixingParser.from_llm(parser=self.parser, llm=self.llm)
-            self.prompt = PROMPT_REGISTRY["document_analysis"]
+            self.prompt = PROMPT_REGISTRY[PromptType.DOCUMENT_ANALYSIS.value]
             log.info("DocumentAnalyzer initialized successfully")
 
         except Exception as e:
