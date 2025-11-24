@@ -1,6 +1,7 @@
 astra_db:
   key_space : "default_keyspace" 
   collection_name : "doc_chat"
+  multi_doc_colection_name: "docs_chat"
 
 embedding_model:
   provider: "google"
@@ -23,4 +24,4 @@ retriever:
   top_k: 20
 
 doc_ingestion:
-  supported_extensions : {".pdf", ".docx", ".txt"}
+  supported_extensions : {".pdf", ".docx", ".txt" , ".md"}

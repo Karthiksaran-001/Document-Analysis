@@ -34,7 +34,7 @@ class ConversationalRAG:
             log.error("Error in Load LLM" , error=str(e))
             raise DocumentException("Error in Load LLM")
     @staticmethod
-    def _format_docs():
+    def _format_docs(docs):
         try:
             pass
         except Exception as e:
