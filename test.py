@@ -87,26 +87,84 @@
 
 ## (Module 3) Test code for document ingestion and Retriever using a   SingleDocQuery
 
+# import sys
+# from pathlib import Path
+# from langchain_community.vectorstores import FAISS
+# from src.document_chat.data_ingestion import SingleDocIngestor
+# from src.document_chat.retrieval import ConversationalRAG
+# from utils.model_loader import ModelLoader
+# from astrapy import DataAPIClient
+# import os
+# from langchain_astradb.vectorstores import AstraDBVectorStore
+# from dotenv import load_dotenv
+# load_dotenv()
+
+
+# def test_conversational_rag_on_pdf(pdf_path:str, question:str):
+#     try:
+#         model_loader = ModelLoader()
+#         db_api_endpoint = os.getenv("ASTRA_DB_API_ENDPOINT")
+#         db_application_token = os.getenv("ASTRA_DB_APPLICATION_TOKEN")
+#         collection_name = "docs_chat"
+#         db_keyspace = "default_keyspace"
+#         db = DataAPIClient(db_application_token).get_database(db_api_endpoint)
+#         collections = db.list_collections()
+#         if any(col.name == collection_name for col in collections):
+#             print("Loading existing ASTRA DB ...")
+#             embeddings = model_loader.load_embeddings()
+#             vectorstore = AstraDBVectorStore(
+#             embedding= embeddings,collection_name=collection_name,api_endpoint=db_api_endpoint,
+#             token=db_application_token,namespace=db_keyspace,)
+#             retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 5})
+#         else:
+#             # Step 2: Ingest document and create retriever
+#             print("Collection  not found. Ingesting PDF and creating index...")
+#             with open(pdf_path, "rb") as f:
+#                 uploaded_files = [f]
+#                 ingestor = SingleDocIngestor()
+#                 retriever = ingestor.ingest_files(uploaded_files)
+                
+#         print("Running Conversational RAG...")
+#         session_id = "test_conversational_rag"
+#         rag = ConversationalRAG(session_id ,retriever )
+#         response = rag.invoke(question)
+#         print(f"\nQuestion: {question}\nAnswer: {response}")
+                    
+#     except Exception as e:
+#         print(f"Test failed: {str(e)}")
+#         sys.exit(1)
+    
+# if __name__ == "__main__":
+#     # Example PDF path and question
+#     pdf_path = r"data\single_doc_chat\RAG.pdf"
+#     question = "what is President Zelenskyy said in their speech in parliament?"
+
+#     if not Path(pdf_path).exists():
+#         print(f"PDF file does not exist at: {pdf_path}")
+#         sys.exit(1)
+    
+#     # Run the test
+#     test_conversational_rag_on_pdf(pdf_path, question)
+
+## (Module 4) Test code for document ingestion and Retriever using a   MultiDocQuery
 import sys
-from pathlib import Path
-from langchain_community.vectorstores import FAISS
-from src.document_chat.data_ingestion import SingleDocIngestor
-from src.document_chat.retrieval import ConversationalRAG
-from utils.model_loader import ModelLoader
-from astrapy import DataAPIClient
 import os
+from utils.model_loader import ModelLoader
+from pathlib import Path
+from astrapy import DataAPIClient
+from src.multi_document_chat.data_ingestion import DocumentIngestion
+from src.multi_document_chat.retrieval import ConversationalRAG
+from astrapy import DataAPIClient
 from langchain_astradb.vectorstores import AstraDBVectorStore
 from dotenv import load_dotenv
 load_dotenv()
 
-# FAISS_INDEX_PATH = Path("faiss_index")
-
-def test_conversational_rag_on_pdf(pdf_path:str, question:str):
+def test_document_ingestion_and_rag():
     try:
         model_loader = ModelLoader()
         db_api_endpoint = os.getenv("ASTRA_DB_API_ENDPOINT")
         db_application_token = os.getenv("ASTRA_DB_APPLICATION_TOKEN")
-        collection_name = "doc_chat"
+        collection_name = "docs_chat"
         db_keyspace = "default_keyspace"
         db = DataAPIClient(db_application_token).get_database(db_api_endpoint)
         collections = db.list_collections()
@@ -118,32 +176,46 @@ def test_conversational_rag_on_pdf(pdf_path:str, question:str):
             token=db_application_token,namespace=db_keyspace,)
             retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 5})
         else:
-            # Step 2: Ingest document and create retriever
-            print("Collection  not found. Ingesting PDF and creating index...")
-            with open(pdf_path, "rb") as f:
-                uploaded_files = [f]
-                ingestor = SingleDocIngestor()
-                retriever = ingestor.ingest_files(uploaded_files)
-                
-        print("Running Conversational RAG...")
-        session_id = "test_conversational_rag"
-        rag = ConversationalRAG(session_id ,retriever )
-        response = rag.invoke(question)
-        print(f"\nQuestion: {question}\nAnswer: {response}")
+            test_files = [
+                r"data\multi_doc_chat\market_analysis_report.docx",
+                r"data\multi_doc_chat\NIPS-2017-attention-is-all-you-need-Paper.pdf",
+                r"data\multi_doc_chat\sample.pdf",
+                r"data\multi_doc_chat\state_of_the_union.txt"]
+            
+            uploaded_files = []
+            
+            for file_path in test_files:
+                if Path(file_path).exists():
+                    uploaded_files.append(open(file_path, "rb"))
+                else:
+                    print(f"File does not exist: {file_path}")
                     
+            if not uploaded_files:
+                print("No valid files to upload.")
+                sys.exit(1)
+                
+            ingestor = DocumentIngestion()
+            
+            retriever = ingestor.ingest_file(uploaded_files)
+            
+            for f in uploaded_files:
+                f.close()
+                
+        session_id = "test_multi_doc_chat"
+        
+        rag = ConversationalRAG(session_id=session_id, retriever=retriever)
+        
+        question = "what is President Zelenskyy said in their speech in parliament?"
+        
+        answer=rag.invoke(question)
+        
+        print("\n Question:", question)
+        
+        print("Answer:", answer)
+            
     except Exception as e:
         print(f"Test failed: {str(e)}")
         sys.exit(1)
-    
+        
 if __name__ == "__main__":
-    # Example PDF path and question
-    pdf_path = r"data\single_doc_chat\RAG.pdf"
-    question = "What is the Indexing in RAG?"
-
-    if not Path(pdf_path).exists():
-        print(f"PDF file does not exist at: {pdf_path}")
-        sys.exit(1)
-    
-    # Run the test
-    test_conversational_rag_on_pdf(pdf_path, question)
-
+    test_document_ingestion_and_rag()

@@ -40,7 +40,7 @@ class DocumentIngestion:
             documents = []
             for file in uploaded_files:
                 ext = Path(file.name).suffix.lower()
-                if ext not in self.SUPPORT_FILE_TYPES:
+                if ext not in self.SUYPPORTED_EXTENSIONS:
                     log.warning("Unsupported File Type Skipped" , file = file , supported_file = self.SUPPORT_FILE_TYPES)
                 unique_filename = f"{uuid.uuid4().hex[:8]}{ext}" 
                 temp_path = self.session_dir/unique_filename
@@ -79,7 +79,7 @@ class DocumentIngestion:
             api_endpoint=self.db_api_endpoint,
             token=self.db_application_token,
             namespace=self.db_keyspace,)
-            inserted_ids = vectorstore.add_documents(documents)
+            inserted_ids = vectorstore.add_documents(chunks)
             log.info(f"Successfully inserted {len(inserted_ids)} documents into AstraDB.")
             top_k = self.config["retriever"]["top_k"] if "retriever" in self.config else 3
             retriever = vectorstore.as_retriever(search_type = "similarity" , search_kwargs = {"k" : top_k})

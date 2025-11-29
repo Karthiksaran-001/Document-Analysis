@@ -17,4 +17,5 @@ ipykernel
 streamlit
 pytest
 astrapy
+pypdf
 -e .   

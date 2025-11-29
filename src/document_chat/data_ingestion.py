@@ -59,7 +59,7 @@ class SingleDocIngestor:
             api_endpoint=self.db_api_endpoint,
             token=self.db_application_token,
             namespace=self.db_keyspace,)
-            inserted_ids = vectorstore.add_documents(documents)
+            inserted_ids = vectorstore.add_documents(chunks)
             log.info(f"Successfully inserted {len(inserted_ids)} documents into AstraDB.")
             top_k = self.config["retriever"]["top_k"] if "retriever" in self.config else 3
             retriever = vectorstore.as_retriever(search_type = "similarity" , search_kwargs = {"k" : top_k})
