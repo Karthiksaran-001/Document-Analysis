@@ -17,7 +17,7 @@ This pipeline converts unstructured documents into searchable vector embeddings,
 - **Python** — Core logic and processing
 - **UV** — Modern Python environment & dependency management
 - **Docker & Docker Compose** — Deployment and environment consistency
-- **GROQ** — High-speed LLM inference
+- **Gemini API** — High-speed LLM inference
 - **FastAPI / Uvicorn** — API layer
 - **pytest** — Testing
 
