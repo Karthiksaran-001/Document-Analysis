@@ -1,8 +1,8 @@
-langchain
+langchain==0.3.27
 langchain-community
-langchain-core
-langchain-groq
-langchain-google-genai
+langchain-core==0.3.72
+langchain-groq==0.3.6
+langchain-google-genai==2.1.8
 faiss-cpu
 ragas
 langchain-astradb
@@ -16,5 +16,6 @@ docx2txt
 ipykernel
 streamlit
 pytest
-
+astrapy
+pypdf
 -e .   

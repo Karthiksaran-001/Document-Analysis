@@ -22,12 +22,12 @@ class DocumentException(Exception):
         {self.traceback_str}
         """
 
-if __name__ == "__main__":
-    log  = CustomLogger().get_logger(__file__)
-    try:
-        a = 10/0
-        log.info(f"Result is {a}")
-    except Exception as e:
-        app_exc = DocumentException(e)
-        log.error(app_exc)
-        raise app_exc
+# if __name__ == "__main__":
+#     log  = CustomLogger().get_logger(__file__)
+#     try:
+#         a = 10/0
+#         log.info(f"Result is {a}")
+#     except Exception as e:
+#         app_exc = DocumentException(e)
+#         log.error(app_exc)
+#         raise app_exc

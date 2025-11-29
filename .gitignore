@@ -8,6 +8,7 @@ logs/
 wheels/
 *.egg-info
 logs/
+test.py
 # Virtual environments
 .venv
 .env

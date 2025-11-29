@@ -1,0 +1,27 @@
+astra_db:
+  key_space : "default_keyspace" 
+  collection_name : "doc_chat"
+  multi_doc_colection_name: "docs_chat"
+
+embedding_model:
+  provider: "google"
+  model_name: "models/text-embedding-004"
+
+llm:
+  groq:
+    provider: "groq"
+    model_name: "deepseek-r1-distill-llama-70b"
+    temperature: 0
+    max_output_tokens: 2048
+
+  google:
+    provider: "google"
+    model_name: "gemini-2.0-flash"
+    temperature: 0
+    max_output_tokens: 2048 
+
+retriever:
+  top_k: 20
+
+doc_ingestion:
+  supported_extensions : {".pdf", ".docx", ".txt" , ".md"}
