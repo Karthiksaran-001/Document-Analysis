@@ -25,7 +25,6 @@ class ConversationalRAG:
             self.session_id = session_id
             self.retriever = retriever
             self.llm = self._load_llm()
-            self.session_state = {}
             self.db_api_endpoint = os.getenv("ASTRA_DB_API_ENDPOINT")
             self.db_application_token = os.getenv("ASTRA_DB_APPLICATION_TOKEN")
             self.config = load_config()
