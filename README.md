@@ -56,3 +56,9 @@ source .venv/bin/activate
 ```bash
 uv pip install -r requirements.txt
 ```
+
+## 🚀 Run the API
+
+```bash
+uvicorn api.main:app --reload
+```
