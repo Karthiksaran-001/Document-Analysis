@@ -65,7 +65,7 @@ class ConversationalRAG:
         except Exception as e:
             self.log.error("Failed in get session history",session_id = session_id , error = str(e))
             raise DocumentException(e)
-    def load_retriver_asda(self, collection_name:str):
+    def load_retriver_asda(self, collection_name:str , top_k :int = 5):
         try:
             embedding = ModelLoader().load_embeddings()
             db = DataAPIClient(self.db_application_token).get_database(self.db_api_endpoint)
@@ -79,7 +79,7 @@ class ConversationalRAG:
             token=self.db_application_token,
             namespace=self.db_keyspace,)
             log.info("Loaded Retriver", collection = collection_name)
-            top_k = self.config["retriever"]["top_k"] if "retriever" in self.config else 3
+            # top_k = self.config["retriever"]["top_k"] if "retriever" in self.config else 3
             retriever = vectorstore.as_retriever(search_type = "similarity" , search_kwargs = {"k" : top_k})
             log.info("Retriever created Successfully" , retriever_type = str(type(retriever)))
         except Exception as e:
