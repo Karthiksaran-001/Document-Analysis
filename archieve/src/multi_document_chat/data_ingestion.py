@@ -13,7 +13,7 @@ from exception.custom_exception import DocumentException
 
 
 class DocumentIngestion:
-    SUYPPORTED_EXTENSIONS = {".pdf" : "" , ".txt" : "" , ".docx" : "" , ".doc" : ""  , ".md" : ""}
+    SUPPORTED_EXTENSIONS = {".pdf" : "" , ".txt" : "" , ".docx" : "" , ".doc" : ""  , ".md" : ""}
     def __init__(self, temp_dir:str = r"./data/multi_doc_chat",session_id=None):
         try:
             self.temp_dir = Path(temp_dir)
@@ -40,7 +40,7 @@ class DocumentIngestion:
             documents = []
             for file in uploaded_files:
                 ext = Path(file.name).suffix.lower()
-                if ext not in self.SUYPPORTED_EXTENSIONS:
+                if ext not in self.SUPPORTED_EXTENSIONS:
                     log.warning("Unsupported File Type Skipped" , file = file , supported_file = self.SUPPORT_FILE_TYPES)
                 unique_filename = f"{uuid.uuid4().hex[:8]}{ext}" 
                 temp_path = self.session_dir/unique_filename

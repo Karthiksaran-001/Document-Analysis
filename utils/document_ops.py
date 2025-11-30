@@ -2,8 +2,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterable, List
 from fastapi import UploadFile
+import fitz
 from langchain.schema import Document
-from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
+from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader,UnstructuredWordDocumentLoader
 from logger import GLOBAL_LOGGER as log
 from exception.custom_exception import DocumentException
 SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt" , ".md"}
@@ -17,9 +18,12 @@ def load_documents(paths: Iterable[Path]) -> List[Document]:
             ext = p.suffix.lower()
             if ext == ".pdf":
                 loader = PyPDFLoader(str(p))
-            elif ext == ".docx":
-                loader = Docx2txtLoader(str(p))
-            elif ext == ".txt":
+            elif ext in [".doc" , ".docx"]:
+                    if ext == ".docx":
+                        loader = Docx2txtLoader(str(p))
+                    else:
+                        loader = UnstructuredWordDocumentLoader(str(p))
+            elif ext in [".txt" , ".md"]:
                 loader = TextLoader(str(p), encoding="utf-8")
             else:
                 log.warning("Unsupported extension skipped", path=str(p))
@@ -43,6 +47,26 @@ def concat_for_comparison(ref_docs: List[Document], act_docs: List[Document]) ->
     right = concat_for_analysis(act_docs)
     return f"<<REFERENCE_DOCUMENTS>>\n{left}\n\n<<ACTUAL_DOCUMENTS>>\n{right}"
 
+def read_pdf(pdf_path:Path,session_id):
+    try:
+        text_chunks = []
+        with fitz.open(pdf_path) as doc:
+            if doc.is_encrypted:
+                raise ValueError(f"PDF is encrypted: {pdf_path.name}")
+            for page_num in range(doc.page_count):
+                page = doc.load_page(page_num)
+                text_chunks.append(f"\n--- Page {page_num + 1} ---\n{page.get_text()}")  # type: ignore
+        text = "\n".join(text_chunks)
+        log.info("PDF read successfully", pdf_path=pdf_path, session_id=session_id, pages=len(text_chunks))
+        return text
+    except Exception as e:
+            log.error("Error While Reading PDF in Document Handler",error = str(e))
+            raise DocumentException("Error While Reading PDF in Document Handler")
+
+
+
+
+
 # ---------- Helpers ----------
 class FastAPIFileAdapter:
     """Adapt FastAPI UploadFile -> .name + .getbuffer() API"""
@@ -53,9 +77,9 @@ class FastAPIFileAdapter:
         self._uf.file.seek(0)
         return self._uf.file.read()
 
-def read_pdf_via_handler(handler, path: str) -> str:
-    if hasattr(handler, "read_pdf"):
-        return handler.read_pdf(path)  # type: ignore
-    if hasattr(handler, "read_"):
-        return handler.read_(path)  # type: ignore
-    raise RuntimeError("DocHandler has neither read_pdf nor read_ method.")
+# def read_pdf_via_handler(handler, path: str) -> str:
+#     if hasattr(handler, "read_pdf"):
+#         return handler.read_pdf(path)  # type: ignore
+#     if hasattr(handler, "read_"):
+#         return handler.read_(path)  # type: ignore
+#     raise RuntimeError("DocHandler has neither read_pdf nor read_ method.")

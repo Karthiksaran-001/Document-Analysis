@@ -13,8 +13,9 @@ from src.document_analyzer.data_analysis import DocumentAnalyzer
 from src.document_compare.document_comparator import DocumentComparatorLLM
 from src.document_chat.retrieval import ConversationalRAG
 from utils.config_loader import load_config
-from utils.document_ops import FastAPIFileAdapter,read_pdf_via_handler
+from utils.document_ops import FastAPIFileAdapter, read_pdf
 from dotenv import load_dotenv
+load_dotenv()
 warnings.filterwarnings("ignore")
 
 UPLOAD_BASE = os.getenv("UPLOAD_BASE", "data")
@@ -47,7 +48,7 @@ async def analyze_document(file:UploadFile = File(...))->Any:
     try:
         dh = DocHandler()
         file_path = dh.save_pdf(FastAPIFileAdapter(file))
-        text = read_pdf_via_handler(dh,file_path)
+        text = read_pdf(file_path,session_id=dh.session_id)
         analyze = DocumentAnalyzer()
         result = analyze.analyze_document(text)
         return JSONResponse(content=result)
@@ -107,7 +108,6 @@ async def chat_query(question: str = Form(...),
         log.info(f"Received chat query: '{question}' | session: {session_id}")
         if use_session_dirs and not session_id:
             raise HTTPException(status_code=400, detail="session_id is required when use_session_dirs=True")
-        collection_name = CONFIG["astra_db"]["collection_name"]
         db = DataAPIClient(DB_TOKEN).get_database(DB_API_ENDPOINT)
         collections = db.list_collections()
         if not any(col.name == COLLECTION_NAME for col in collections):
