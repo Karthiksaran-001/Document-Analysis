@@ -6,7 +6,7 @@ packages = [
     "langchain_groq",
     "langchain_google_genai",
     "langchain-community",
-    "faiss-cpu",
+    "langchain-astradb",
     "structlog",
     "PyMuPDF",
     "pylint",

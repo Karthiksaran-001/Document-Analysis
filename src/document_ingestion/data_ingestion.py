@@ -16,7 +16,7 @@ from langchain_astradb.vectorstores import AstraDBVectorStore
 from logger import GLOBAL_LOGGER as log
 from exception.custom_exception import DocumentException
 from utils.config_loader import load_config
-from utils.document_ops import read_pdf ,load_documents, concat_for_analysis, concat_for_comparison
+from utils.document_ops import read_pdf ,load_documents, clean_old_sessions, concat_for_comparison
 from utils.file_io import generate_session_id, save_uploaded_files
 from utils.model_loader import ModelLoader
 from dotenv import load_dotenv
@@ -137,12 +137,14 @@ class DocHandler:
             if not filename.lower().endswith(".pdf"):
                 raise ValueError("Invalid file type. Only PDFs are allowed.")
             save_path = os.path.join(self.session_path, filename)
+            clean_old_sessions(log,Path(self.data_dir))
             with open(save_path, "wb") as f:
                 if hasattr(uploaded_file, "read"):
                     f.write(uploaded_file.read())
                 else:
                     f.write(uploaded_file.getbuffer())
             log.info("PDF saved successfully", file=filename, save_path=save_path, session_id=self.session_id)
+            return save_path
         except Exception as e:
             log.error("Error While Save PDF in Document Handler",error = str(e))
             raise DocumentException("Error While Save PDF in Document Handler")
@@ -174,6 +176,7 @@ class DocumentComparator:
                     else:
                         f.write(fobj.getbuffer())
             log.info("Files saved", reference=str(ref_path), actual=str(act_path), session=self.session_id)
+            clean_old_sessions(log,self.base_dir)
             return ref_path, act_path
         except Exception as e:
             log.error("Error While Saving Uploaded Documents in Data Ingestion",error = str(e))
@@ -183,7 +186,7 @@ class DocumentComparator:
             doc_parts = []
             for file in sorted(self.session_path.iterdir()):
                 if file.is_file() and file.suffix.lower() == ".pdf":
-                    content = read_pdf(file)
+                    content = read_pdf(file,self.session_id)
                     doc_parts.append(f"Document: {file.name}\n{content}")
             combined_text = "\n\n".join(doc_parts)
             log.info("Documents combined", count=len(doc_parts), session=self.session_id)
@@ -191,15 +194,6 @@ class DocumentComparator:
         except Exception as e:
             log.error("Error While Combining Docs in Document Comparator",error = str(e))
             raise DocumentException("Error While Combining Docs in Document Comparator")
-    def clean_old_sessions(self,keep_latest:int = 3):
-        try:
-            sessions = sorted([f for f in self.base_dir.iterdir() if f.is_dir()], reverse=True)
-            for folder in sessions[keep_latest:]:
-                shutil.rmtree(folder, ignore_errors=True)
-                log.info("Old session folder deleted", path=str(folder))
-        except Exception as e:
-            log.error("Error While Clearning Old Sessions in Document Comparator",error = str(e))
-            raise DocumentException("Error While Clearning Old Sessions in Document Comparator")
 class ChatIngestor:
     def __init__(self, temp_base: str = "data",
         collection_name: str = None,

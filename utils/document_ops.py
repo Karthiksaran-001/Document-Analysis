@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Iterable, List
 from fastapi import UploadFile
 import fitz
+import shutil
 from langchain.schema import Document
 from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader,UnstructuredWordDocumentLoader
 from logger import GLOBAL_LOGGER as log
@@ -63,7 +64,15 @@ def read_pdf(pdf_path:Path,session_id):
             log.error("Error While Reading PDF in Document Handler",error = str(e))
             raise DocumentException("Error While Reading PDF in Document Handler")
 
-
+def clean_old_sessions(log,base_dir,keep_latest:int = 3):
+    try:
+        sessions = sorted([f for f in base_dir.iterdir() if f.is_dir()], reverse=True)
+        for folder in sessions[keep_latest:]:
+            shutil.rmtree(folder, ignore_errors=True)
+        log.info("Old session folder deleted", path=str(folder))
+    except Exception as e:
+            log.error("Error While Clearning Old Sessions in Document Comparator",error = str(e))
+            raise DocumentException("Error While Clearning Old Sessions in Document Comparator")
 
 
 

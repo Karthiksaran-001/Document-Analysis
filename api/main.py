@@ -43,9 +43,10 @@ async def serve_ui(request:Request):
 async def check_api()->Dict[str,str]:
     return {"status" : "ok" , "service" : "document-portal"}
 
-@app.post("/analysis")
+@app.post("/analyze")
 async def analyze_document(file:UploadFile = File(...))->Any:
     try:
+        log.info(f"Received file for analysis: {file.filename}")
         dh = DocHandler()
         file_path = dh.save_pdf(FastAPIFileAdapter(file))
         text = read_pdf(file_path,session_id=dh.session_id)
@@ -62,7 +63,7 @@ async def analyze_document(file:UploadFile = File(...))->Any:
 async def compare_document(reference:UploadFile = File(...) , actual:UploadFile = File(...))->Any:
     try:
         dc = DocumentComparator()
-        ref_path , act_path = dc.combine_documents(FastAPIFileAdapter(reference),FastAPIFileAdapter(actual))
+        ref_path , act_path = dc.save_uploaded_files(FastAPIFileAdapter(reference),FastAPIFileAdapter(actual))
         _ , _ = ref_path , act_path
         combined_text = dc.combine_documents()
         comp = DocumentComparatorLLM()

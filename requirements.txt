@@ -1,0 +1,20 @@
+langchain==0.3.27
+langchain-community
+langchain-core==0.3.72
+langchain-groq==0.3.6
+langchain-google-genai==2.1.8
+ragas
+langchain-astradb
+fastapi
+uvicorn
+python-dotenv
+python-multipart
+PyMuPDF
+structlog
+docx2txt
+ipykernel
+streamlit
+pytest
+astrapy
+pypdf
+-e .   
