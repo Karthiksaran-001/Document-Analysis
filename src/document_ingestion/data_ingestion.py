@@ -107,10 +107,13 @@ class DBManager:
             raise DocumentException("Error in Adding Documents")    
     def load_or_create(self,texts:Optional[List[str]]=None, metadatas: Optional[List[dict]] = None):
         try:
+            self.db_connection()
             if self._exists():
-                self.db_connection()
+                return self.vs
             if not texts:
                 raise DocumentException("No existing Collection name  and no data to create one")
+            print("Vector Store......")
+            print(self.vs)
             self.vs.from_texts(texts , embedding=self.embedding ,metadatas=metadatas or [])
             return self.vs
         except Exception as e:

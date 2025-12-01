@@ -1,5 +1,5 @@
 import os
-from typing import Optional , List
+from typing import Optional , List , Dict , Any
 from operator import itemgetter
 from astrapy import DataAPIClient
 from langchain_astradb.vectorstores import AstraDBVectorStore
@@ -12,6 +12,7 @@ from utils.model_loader import ModelLoader
 from prompt.prompt_library import PROMPT_REGISTRY
 from utils.config_loader import load_config
 from dotenv import load_dotenv
+load_dotenv()
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -24,18 +25,18 @@ class ConversationalRAG:
             self.db_application_token = os.getenv("ASTRA_DB_APPLICATION_TOKEN")
             self.config = load_config()
             self.db_keyspace = self.config["astra_db"]["key_space"]
-            self.collection_name=self.config["astra_db"]["multi_doc_colection_name"]
+            self.collection_name=self.config["astra_db"]["collection_name"]
             self.contextualize_prompt = PROMPT_REGISTRY[PromptType.CONTEXTUALIZE_QUESTION.value]
             self.qa_prompt = PROMPT_REGISTRY[PromptType.CONTEXT_QA.value]
-            if retriever is None:
-                raise ValueError("Retriever cannot be empty")
             self.retriever = retriever
-            self._build_lcel_chain()
+            self.chain = None
+            if self.retriever is not None:
+                self._build_lcel_chain()
             log.info("ConversationalRAG Initialized")
         except Exception as e:
             log.error("Error in ConversationalRAG Initalizer" , error=str(e))
             raise DocumentException("Error in ConversationalRAG Initalizer")
-    def load_retriever_from_asda(self,collection_name:str):
+    def load_retriever_from_asda(self,collection_name:str, k: int = 5,search_type: str = "similarity",search_kwargs: Optional[Dict[str, Any]] = None):
         try:
             embedding = ModelLoader().load_embeddings()
             db = DataAPIClient(self.db_application_token).get_database(self.db_api_endpoint)
@@ -48,16 +49,23 @@ class ConversationalRAG:
             api_endpoint=self.db_api_endpoint,
             token=self.db_application_token,
             namespace=self.db_keyspace,)
+            if search_kwargs is None:
+                search_kwargs = {"k": k}
             log.info("Loaded Retriver", collection = collection_name)
-            top_k = self.config["retriever"]["top_k"] if "retriever" in self.config else 3
-            self.retriever = vectorstore.as_retriever(search_type = "similarity" , search_kwargs = {"k" : top_k})
-            log.info("Retriever created Successfully" , retriever_type = str(type(self.retriever)))
-            return self.retriever
+            self.retriever = vectorstore.as_retriever(search_type = search_type , search_kwargs = search_kwargs)
+            self._build_lcel_chain()
+            log.info(
+                "ASDA  retriever loaded successfully",
+                collection=collection_name,
+                k=k,session_id=self.session_id,)
         except Exception as e:
             log.error("Error in Load Retriever" , error=str(e))
             raise DocumentException("Error in Load Retriever")
     def invoke(self,user_input:str , chat_history : Optional[List[BaseMessage]] = None):
         try:
+            if self.chain is None:
+                raise DocumentException(
+                    "RAG chain not initialized. Call load_retriever_from_asda() before invoke().")
             if chat_history is None:
                 chat_history = []
             payload = {
@@ -90,6 +98,9 @@ class ConversationalRAG:
         
     def _build_lcel_chain(self):
         try:
+            if self.retriever is None:
+                raise DocumentException
+            ("No retriever set before building chain")
             question_rewritter = (
                 {"input": itemgetter("input"), "chat_history": itemgetter("chat_history")}
                 | self.contextualize_prompt

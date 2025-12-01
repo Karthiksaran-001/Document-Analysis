@@ -114,7 +114,7 @@ async def chat_query(question: str = Form(...),
         if not any(col.name == COLLECTION_NAME for col in collections):
                 raise HTTPException(status_code=404, detail=f"COLLECTION NAME : {COLLECTION_NAME} not found")
         rag = ConversationalRAG(session_id=session_id)
-        rag.load_retriever_from_asda(COLLECTION_NAME , top_k = k)
+        rag.load_retriever_from_asda(COLLECTION_NAME , k = k)
         response = rag.invoke(question, chat_history=[])
         log.info("Chat query handled successfully.")
         return {
