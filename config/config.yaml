@@ -1,6 +1,6 @@
 astra_db:
   key_space : "default_keyspace" 
-  collection_name : "document_chat"
+  collection_name : "test_doc"
   # multi_doc_colection_name: "docs_chat"
 
 embedding_model:

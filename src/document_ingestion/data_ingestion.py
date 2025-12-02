@@ -1,22 +1,16 @@
 from __future__ import annotations
 import os
 import json
-import uuid
 from pathlib import Path 
-import shutil
-import hashlib
 from typing import Iterable , List , Optional , Dict , Any
-from datetime import datetime , timezone
-import fitz
 from langchain.schema import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import Docx2txtLoader , TextLoader,PyPDFLoader
 from astrapy import DataAPIClient
 from langchain_astradb.vectorstores import AstraDBVectorStore
 from logger import GLOBAL_LOGGER as log
 from exception.custom_exception import DocumentException
 from utils.config_loader import load_config
-from utils.document_ops import read_pdf ,load_documents, clean_old_sessions, concat_for_comparison
+from utils.document_ops import read_pdf ,load_documents, clean_old_sessions
 from utils.file_io import generate_session_id, save_uploaded_files
 from utils.model_loader import ModelLoader
 from dotenv import load_dotenv
@@ -48,6 +42,22 @@ class DBManager:
         except Exception as e:
             log.error("Error While DB Manager in Data Ingestion",error = str(e))
             raise DocumentException("Error While DB Manager in Data Ingestion")
+    def check_duplicates(self,docs):
+        first_document = docs[0]
+        source_path = first_document.metadata['source']
+        path_parts = source_path.split('\\')
+        extracted_folder_name = path_parts[1]
+        log.info("To check the folder" , folder_name = extracted_folder_name)
+        client = DataAPIClient(self.db_token)
+        collection = client.get_database(self.api_endpoint).get_collection(self.collection_name)
+        cursor = collection.find({})
+        for doc in cursor:
+            src = doc.get("metadata", {}).get("source")
+            if isinstance(src, str) and extracted_folder_name in src:
+                log.info("Present in the MetaData", src = src , session_name = extracted_folder_name)
+                return True
+        log.info("Not Present in the MetaData", session_name = extracted_folder_name)        
+        return False
     def _exists(self):
         try:
             db = DataAPIClient(self.db_token).get_database(self.api_endpoint)
@@ -56,17 +66,17 @@ class DBManager:
         except Exception as e:
             log.error("Error in existing method" , error = str(e))
             raise DocumentException("Error While DB Mangining in Data Ingestion")
-    @staticmethod
-    def _fingerprint(text: str, md: Dict[str, Any]):
-        try:
-            src = md.get("source") or md.get("file_path")
-            rid = md.get("row_id")
-            if src is not None:
-                return f"{src}::{'' if rid is None else rid}"
-            return hashlib.sha256(text.encode("utf-8")).hexdigest()
-        except Exception as e:
-            log.error("Error in Checking Duplicates in Fingerprint" , error = str(e))
-            raise DocumentException("Error in Checking Duplicates in Fingerprint")
+    # @staticmethod
+    # def _fingerprint(text: str, md: Dict[str, Any]):
+    #     try:
+    #         src = md.get("source") or md.get("file_path")
+    #         rid = md.get("row_id")
+    #         if src is not None:
+    #             return f"{src}::{'' if rid is None else rid}"
+    #         return hashlib.sha256(text.encode("utf-8")).hexdigest()
+    #     except Exception as e:
+    #         log.error("Error in Checking Duplicates in Fingerprint" , error = str(e))
+    #         raise DocumentException("Error in Checking Duplicates in Fingerprint")
     def db_connection(self):
         try:
             
@@ -89,19 +99,24 @@ class DBManager:
         try:
             if self.vs is None:
                 raise RuntimeError("Call load_or_create() before add_documents_idempotent().")
-            new_docs: List[Document] = []
-        
-            for d in docs:
-                key = self._fingerprint(d.page_content, d.metadata or {})
-                if key in self._meta["rows"]:
-                    continue
-                self._meta["rows"][key] = True
-                new_docs.append(d)
-                
-            if new_docs:
-                self.vs.add_documents(new_docs)
+            # new_docs: List[Document] = []
+            present = self.check_duplicates(docs)
+            if present:
+                new_docs: List[Document] = []
+                return len(new_docs)
+            # for d in docs:
+            #     key = self._fingerprint(d.page_content, d.metadata or {})
+            #     if key in self._meta["rows"]:
+            #         continue
+            #     self._meta["rows"][key] = True
+            #     new_docs.append(d)
+
+            # print(f"New Docs : {len(new_docs)}")
+            # print(new_docs)    
+            if docs and present == False:
+                self.vs.add_documents(docs)
                 self._save_meta()
-            return len(new_docs)
+            return len(docs)
         except Exception as e:
             log.error("Error in Adding Documents" , error = str(e))
             raise DocumentException("Error in Adding Documents")    
@@ -112,8 +127,6 @@ class DBManager:
                 return self.vs
             if not texts:
                 raise DocumentException("No existing Collection name  and no data to create one")
-            print("Vector Store......")
-            print(self.vs)
             self.vs.from_texts(texts , embedding=self.embedding ,metadatas=metadatas or [])
             return self.vs
         except Exception as e:
@@ -255,8 +268,11 @@ class ChatIngestor:
             except Exception:
                 vs = fm.load_or_create(texts=texts, metadatas=metas)
             added = fm.add_documents(chunks)
+            if added == 0:
+                log.info("Vector DB Already updated", collection=str(self.collection_name))
+                return vs.as_retriever(search_type="similarity", search_kwargs={"k": k}) , added
             log.info("Vector DB index updated", added=added, collection=str(self.collection_name))
-            return vs.as_retriever(search_type="similarity", search_kwargs={"k": k})
+            return vs.as_retriever(search_type="similarity", search_kwargs={"k": k}) , added
             
         except Exception as e:
             log.error("Error While Build Retriever in ChatIngestor",error = str(e))

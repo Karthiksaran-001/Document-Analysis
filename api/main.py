@@ -91,9 +91,13 @@ async def chat_index(
             collection_name=COLLECTION_NAME,
             use_session_dirs=use_session_dirs,
             session_id=session_id or None,)
-        ci.build_retriever( wrapped, chunk_size=chunk_size, chunk_overlap=chunk_overlap, k=k)
-        log.info(f"Index created successfully for session: {ci.session_id}")
-        return {"session_id": ci.session_id, "k": k, "use_session_dirs": use_session_dirs}        
+        _ , chunks = ci.build_retriever( wrapped, chunk_size=chunk_size, chunk_overlap=chunk_overlap, k=k)
+        if chunks ==0:
+            log.info(f"Index Already created for session: {ci.session_id}")
+            return {"session_id": ci.session_id, "k": k, "use_session_dirs": use_session_dirs} 
+        else:    
+            log.info(f"Index created successfully for session: {ci.session_id}")
+            return {"session_id": ci.session_id, "k": k, "use_session_dirs": use_session_dirs}           
     except HTTPException:
         raise
     except Exception as e:
