@@ -4,6 +4,7 @@ from typing import Iterable, List
 from fastapi import UploadFile
 import fitz
 import shutil
+from langchain_core.messages import BaseMessage
 from langchain.schema import Document
 from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader,UnstructuredWordDocumentLoader
 from logger import GLOBAL_LOGGER as log
@@ -73,7 +74,6 @@ def clean_old_sessions(log,base_dir,keep_latest:int = 3):
     except Exception as e:
             log.error("Error While Clearning Old Sessions in Document Comparator",error = str(e))
             raise DocumentException("Error While Clearning Old Sessions in Document Comparator")
-
 
 
 # ---------- Helpers ----------

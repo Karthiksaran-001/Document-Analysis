@@ -1,5 +1,6 @@
 import os
 import warnings
+from langchain_core.messages import HumanMessage, AIMessage ,BaseMessage
 from astrapy import DataAPIClient
 from fastapi import FastAPI , UploadFile , File , Form , HTTPException , Request
 from fastapi.responses import JSONResponse , HTMLResponse
@@ -23,6 +24,7 @@ CONFIG = load_config()
 COLLECTION_NAME = CONFIG["astra_db"]["collection_name"]
 DB_API_ENDPOINT = os.getenv("ASTRA_DB_API_ENDPOINT")
 DB_TOKEN = os.getenv("ASTRA_DB_APPLICATION_TOKEN")
+chat_history: List[BaseMessage] = []
 
 app = FastAPI(title="Document Portal API", version="0.1")
 app.add_middleware(
@@ -117,10 +119,12 @@ async def chat_query(question: str = Form(...),
         collections = db.list_collections()
         if not any(col.name == COLLECTION_NAME for col in collections):
                 raise HTTPException(status_code=404, detail=f"COLLECTION NAME : {COLLECTION_NAME} not found")
+        chat_history.append(HumanMessage(content=question))
         rag = ConversationalRAG(session_id=session_id)
         rag.load_retriever_from_asda(COLLECTION_NAME , k = k)
-        response = rag.invoke(question, chat_history=[])
+        response = rag.invoke(question, chat_history = chat_history)
         log.info("Chat query handled successfully.")
+        chat_history.append(AIMessage(content=response))
         return {
             "answer": response,
             "session_id": session_id,

@@ -1,6 +1,7 @@
 import os
 from typing import Optional , List , Dict , Any
 from operator import itemgetter
+from langchain_core.messages import SystemMessage
 from astrapy import DataAPIClient
 from langchain_astradb.vectorstores import AstraDBVectorStore
 from langchain_core.output_parsers  import StrOutputParser
@@ -28,6 +29,7 @@ class ConversationalRAG:
             self.collection_name=self.config["astra_db"]["collection_name"]
             self.contextualize_prompt = PROMPT_REGISTRY[PromptType.CONTEXTUALIZE_QUESTION.value]
             self.qa_prompt = PROMPT_REGISTRY[PromptType.CONTEXT_QA.value]
+            self.summarize_prompt = PROMPT_REGISTRY[PromptType.SUMMARIZE_CHAT_HISTORY.value]
             self.retriever = retriever
             self.chain = None
             if self.retriever is not None:
@@ -61,13 +63,30 @@ class ConversationalRAG:
         except Exception as e:
             log.error("Error in Load Retriever" , error=str(e))
             raise DocumentException("Error in Load Retriever")
+        
+    def _summarize_history(self,chat_history:List[BaseMessage]):
+        max_history_messages = self.config["retriever"]["max_history_messages"]
+        if len(chat_history) <= max_history_messages:
+            return chat_history
+        
+        if len(chat_history) >max_history_messages:
+            print(chat_history[:-max_history_messages])
+        log.warning("Chat History Pass the History Threshold",current_message = len(chat_history) , chat_history_threshold = max_history_messages)
+        old_messages = chat_history[:-max_history_messages]
+        summary_text = "\n".join([f"{m.type}: {m.content}" for m in old_messages])
+
+        prompt = self.summarize_prompt.format(summary_text=summary_text)
+        summary = self.llm.invoke(prompt).content
+        summarized_message = SystemMessage(content=f"Conversation summary: {summary}")
+        new_history = [summarized_message] + chat_history[-max_history_messages:]
+        return new_history
+    
     def invoke(self,user_input:str , chat_history : Optional[List[BaseMessage]] = None):
         try:
             if self.chain is None:
                 raise DocumentException(
                     "RAG chain not initialized. Call load_retriever_from_asda() before invoke().")
-            if chat_history is None:
-                chat_history = []
+            chat_history = self._summarize_history(chat_history)
             payload = {
                     "input" : user_input,
                     "chat_history" : chat_history}
@@ -78,8 +97,9 @@ class ConversationalRAG:
             log.info("Answer generated" , session_id = self.session_id, input = user_input , answer_preview = answer[:100])
             return answer
         except Exception as e:
-            log.error("Failed in load retriver faiss" , error = str(e))
-            raise DocumentException(e)
+            log.error("Failed in load retriver DB" , error = str(e))
+            raise DocumentException(e)    
+    
     def _load_llm(self):
         try:
             llm = ModelLoader().load_llm()
