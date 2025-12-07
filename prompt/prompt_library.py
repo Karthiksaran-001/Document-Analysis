@@ -51,14 +51,7 @@ context_qa_prompt = ChatPromptTemplate.from_messages([
     ("human", "{input}"),
 ])
 
-# Prompt for Summarize ChatHistory
-summarize_prompt = ChatPromptTemplate.from_template("""
-Summarize the following conversation in less than 10 lines.
-Focus on user preferences, important details, and tasks.
 
-Conversation:
-{summary_text}
-""")
 
 # Central dictionary to register prompts
 PROMPT_REGISTRY = {
@@ -66,5 +59,4 @@ PROMPT_REGISTRY = {
     "document_comparison": document_comparison_prompt,
     "contextualize_question": contextualize_question_prompt,
     "context_qa": context_qa_prompt,
-    "summarize_chat_history" : summarize_prompt,
 }
