@@ -70,7 +70,7 @@ def clean_old_sessions(log,base_dir,keep_latest:int = 3):
         sessions = sorted([f for f in base_dir.iterdir() if f.is_dir()], reverse=True)
         for folder in sessions[keep_latest:]:
             shutil.rmtree(folder, ignore_errors=True)
-        log.info("Old session folder deleted", path=str(folder))
+            log.info("Old session folder deleted", path=str(folder))
     except Exception as e:
             log.error("Error While Clearning Old Sessions in Document Comparator",error = str(e))
             raise DocumentException("Error While Clearning Old Sessions in Document Comparator")

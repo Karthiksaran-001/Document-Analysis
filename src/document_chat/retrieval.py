@@ -28,7 +28,6 @@ class ConversationalRAG:
             self.collection_name=self.config["astra_db"]["collection_name"]
             self.contextualize_prompt = PROMPT_REGISTRY[PromptType.CONTEXTUALIZE_QUESTION.value]
             self.qa_prompt = PROMPT_REGISTRY[PromptType.CONTEXT_QA.value]
-            self.summarize_prompt = PROMPT_REGISTRY[PromptType.SUMMARIZE_CHAT_HISTORY.value]
             self.retriever = retriever
             self.chain = None
             if self.retriever is not None:

@@ -45,8 +45,9 @@ class DBManager:
     def check_duplicates(self,docs):
         first_document = docs[0]
         source_path = first_document.metadata['source']
-        path_parts = source_path.split('\\')
-        extracted_folder_name = path_parts[1]
+        extracted_folder_name = Path(source_path).parts[1]
+        # path_parts = source_path.split('\\')
+        # extracted_folder_name = path_parts[1]
         log.info("To check the folder" , folder_name = extracted_folder_name)
         client = DataAPIClient(self.db_token)
         collection = client.get_database(self.api_endpoint).get_collection(self.collection_name)

@@ -62,3 +62,25 @@ uv pip install -r requirements.txt
 ```bash
 uvicorn api.main:app --reload
 ```
+
+## 🐳 Running the Document Analysis System
+Follow the steps below to build and run the Docker container for this project:
+### 1️⃣ 🛠️Build the Docker Image
+```bash
+docker build -t document-analysis .
+```
+This command builds the Docker image using the Dockerfile in the current directory and tags it as document-analysis.
+### 2️⃣ 🚢Run the Docker Container
+```bash
+docker run -d -p 8093:8080 --name my-doc-portal document-analysis
+```
+- -d → Runs the container in detached mode
+
+- -p 8093:8080 → Maps local port 8093 to the container’s 8080 port
+
+- --name my-doc-portal → Assigns a friendly name to the container
+
+Once the container is up, access the application at:
+```bash
+http://localhost:8093
+```
