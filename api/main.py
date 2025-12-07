@@ -1,6 +1,7 @@
 import os
 import warnings
-from langchain_core.messages import HumanMessage, AIMessage ,BaseMessage
+from langchain.memory import ConversationSummaryBufferMemory
+from langchain_core.messages import HumanMessage
 from astrapy import DataAPIClient
 from fastapi import FastAPI , UploadFile , File , Form , HTTPException , Request
 from fastapi.responses import JSONResponse , HTMLResponse
@@ -14,7 +15,7 @@ from src.document_analyzer.data_analysis import DocumentAnalyzer
 from src.document_compare.document_comparator import DocumentComparatorLLM
 from src.document_chat.retrieval import ConversationalRAG
 from utils.config_loader import load_config
-from utils.document_ops import FastAPIFileAdapter, read_pdf
+from utils.document_ops import FastAPIFileAdapter, read_pdf , get_memory
 from dotenv import load_dotenv
 load_dotenv()
 warnings.filterwarnings("ignore")
@@ -24,7 +25,7 @@ CONFIG = load_config()
 COLLECTION_NAME = CONFIG["astra_db"]["collection_name"]
 DB_API_ENDPOINT = os.getenv("ASTRA_DB_API_ENDPOINT")
 DB_TOKEN = os.getenv("ASTRA_DB_APPLICATION_TOKEN")
-chat_history: List[BaseMessage] = []
+memory_store: Dict[str, ConversationSummaryBufferMemory] = {}
 
 app = FastAPI(title="Document Portal API", version="0.1")
 app.add_middleware(
@@ -119,12 +120,16 @@ async def chat_query(question: str = Form(...),
         collections = db.list_collections()
         if not any(col.name == COLLECTION_NAME for col in collections):
                 raise HTTPException(status_code=404, detail=f"COLLECTION NAME : {COLLECTION_NAME} not found")
-        chat_history.append(HumanMessage(content=question))
+
         rag = ConversationalRAG(session_id=session_id)
         rag.load_retriever_from_asda(COLLECTION_NAME , k = k)
-        response = rag.invoke(question, chat_history = chat_history)
+        token_limit = CONFIG["retriever"]["token_limit_memory"]
+        memory = get_memory(memory_store,session_id, token_limit,rag.llm)
+        memory_history = memory.load_memory_variables({})["chat_history"]
+        final_history = memory_history + [HumanMessage(content=question)]
+        response = rag.invoke(final_history)
         log.info("Chat query handled successfully.")
-        chat_history.append(AIMessage(content=response))
+        memory.save_context({"input": question},{"output": response})
         return {
             "answer": response,
             "session_id": session_id,

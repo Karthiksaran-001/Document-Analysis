@@ -3,6 +3,7 @@ langchain-community
 langchain-core==0.3.72
 langchain-groq==0.3.6
 langchain-google-genai==2.1.8
+transformers==4.57.3
 ragas
 langchain-astradb
 fastapi

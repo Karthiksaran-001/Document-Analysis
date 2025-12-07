@@ -1,11 +1,10 @@
 import os
 from typing import Optional , List , Dict , Any
 from operator import itemgetter
-from langchain_core.messages import SystemMessage
 from astrapy import DataAPIClient
 from langchain_astradb.vectorstores import AstraDBVectorStore
 from langchain_core.output_parsers  import StrOutputParser
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import BaseMessage, HumanMessage
 from logger import GLOBAL_LOGGER as log
 from model.models import PromptType
 from exception.custom_exception import DocumentException
@@ -64,32 +63,17 @@ class ConversationalRAG:
             log.error("Error in Load Retriever" , error=str(e))
             raise DocumentException("Error in Load Retriever")
         
-    def _summarize_history(self,chat_history:List[BaseMessage]):
-        max_history_messages = self.config["retriever"]["max_history_messages"]
-        if len(chat_history) <= max_history_messages:
-            return chat_history
-        
-        if len(chat_history) >max_history_messages:
-            print(chat_history[:-max_history_messages])
-        log.warning("Chat History Pass the History Threshold",current_message = len(chat_history) , chat_history_threshold = max_history_messages)
-        old_messages = chat_history[:-max_history_messages]
-        summary_text = "\n".join([f"{m.type}: {m.content}" for m in old_messages])
-
-        prompt = self.summarize_prompt.format(summary_text=summary_text)
-        summary = self.llm.invoke(prompt).content
-        summarized_message = SystemMessage(content=f"Conversation summary: {summary}")
-        new_history = [summarized_message] + chat_history[-max_history_messages:]
-        return new_history
     
-    def invoke(self,user_input:str , chat_history : Optional[List[BaseMessage]] = None):
+    def invoke(self, messages: List[BaseMessage] , chat_history : Optional[List[BaseMessage]] = None):
         try:
             if self.chain is None:
                 raise DocumentException(
                     "RAG chain not initialized. Call load_retriever_from_asda() before invoke().")
-            chat_history = self._summarize_history(chat_history)
-            payload = {
-                    "input" : user_input,
-                    "chat_history" : chat_history}
+            user_input = messages[-1]
+            if not isinstance(user_input, HumanMessage):
+                raise ValueError("Last message is not HumanMessage")
+            chat_history = messages[:-1]
+            payload = {"input" : user_input,"chat_history" : chat_history}
             answer = self.chain.invoke(payload) 
             if answer is None:
                 log.warning("Answer is None" ,input = user_input ,session_id = self.session_id)

@@ -22,7 +22,7 @@ llm:
 
 retriever:
   top_k: 20
-  max_history_messages: 4
+  token_limit_memory: 1500
 
 doc_ingestion:
   supported_extensions : {".pdf", ".docx", ".txt" , ".md"}
