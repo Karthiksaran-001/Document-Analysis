@@ -28,8 +28,20 @@
       ],
       "secrets": [
         {
-          "name": "API_KEYS", 
-          "valueFrom": "arn:aws:secretsmanager:us-east-1:467924835045:secret:api_keys-nZTtj8"
+          "name": "GROQ_API_KEY", 
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:467924835045:secret:APIKey-JDtM2H:GROQ_API_KEY"
+        },
+        {
+          "name": "GOOGLE_API_KEY", 
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:467924835045:secret:APIKey-JDtM2H:GOOGLE_API_KEY"
+        },
+        {
+          "name": "ASTRA_DB_API_ENDPOINT", 
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:467924835045:secret:APIKey-JDtM2H:ASTRA_DB_API_ENDPOINT"
+        },
+        {
+          "name": "ASTRA_DB_APPLICATION_TOKEN",
+          "valueFrom" : "arn:aws:secretsmanager:us-east-1:467924835045:secret:APIKey-JDtM2H:ASTRA_DB_APPLICATION_TOKEN"
         }
         
       ],
