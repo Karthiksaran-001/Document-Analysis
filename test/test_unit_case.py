@@ -2,6 +2,7 @@
 
 import pytest
 from fastapi.testclient import TestClient
+from utils.config_loader import load_config
 from api.main import app   # or your FastAPI entrypoint
 
 client = TestClient(app)
